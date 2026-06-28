@@ -203,19 +203,33 @@
     const openBtns = $$("[data-trailer-open]");
     const closeBtns = $$("[data-trailer-close]");
 
+    const playVideo = (video) => {
+      if (!video) return;
+      const tryPlay = () => video.play().catch(() => {});
+      if (video.readyState >= 2) {
+        tryPlay();
+      } else {
+        video.addEventListener("loadeddata", tryPlay, { once: true });
+      }
+    };
+
+    const pauseVideo = (video) => {
+      if (video) video.pause();
+    };
+
     const openModal = () => {
       modal.classList.add("is-open");
       modal.setAttribute("aria-hidden", "false");
       html.classList.add("modal-open");
       player.currentTime = 0;
-      player.play().catch(() => {});
+      playVideo(player);
     };
 
     const closeModal = () => {
       modal.classList.remove("is-open");
       modal.setAttribute("aria-hidden", "true");
       html.classList.remove("modal-open");
-      player.pause();
+      pauseVideo(player);
     };
 
     openBtns.forEach((btn) => btn.addEventListener("click", openModal));
@@ -233,9 +247,9 @@
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              preview.play().catch(() => {});
+              playVideo(preview);
             } else {
-              preview.pause();
+              pauseVideo(preview);
             }
           });
         },
@@ -245,13 +259,34 @@
       previewObserver.observe(preview);
 
       if (media) {
-        media.addEventListener("mouseenter", () => preview.play().catch(() => {}));
-        media.addEventListener("mouseleave", () => preview.pause());
+        media.addEventListener("mouseenter", () => playVideo(preview));
+        media.addEventListener("mouseleave", () => pauseVideo(preview));
       }
     }
   }
 
-  /* ─── 8. Contact form (client-side validation + feedback) ─────────────── */
+  /* ─── 8. APK download helper ──────────────────────────────────────────── */
+  function initDownload() {
+    const links = $$("a[download]");
+    links.forEach((link) => {
+      link.addEventListener("click", (e) => {
+        const href = link.getAttribute("href");
+        if (!href || href.startsWith("http")) return;
+        try {
+          const a = document.createElement("a");
+          a.href = href;
+          a.download = href.split("/").pop();
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } catch (err) {
+          window.open(href, "_blank");
+        }
+      });
+    });
+  }
+
+  /* ─── 9. Contact form (client-side validation + feedback) ─────────────── */
   function initContactForm() {
     if (!contactForm) return;
 
@@ -295,6 +330,7 @@
     initCardTilt();
     initGlowBorder();
     initTrailer();
+    initDownload();
     initContactForm();
 
     // Hero content visible after loader
